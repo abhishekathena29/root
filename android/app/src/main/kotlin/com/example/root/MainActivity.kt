@@ -3,7 +3,9 @@ package com.example.root
 import android.app.ActivityManager
 import android.app.AppOpsManager
 import android.app.WallpaperManager
+import android.app.admin.DevicePolicyManager
 import android.app.usage.UsageStatsManager
+import android.content.ComponentName
 import android.content.ContentUris
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -56,6 +58,10 @@ class MainActivity: FlutterActivity() {
                 "getSystemInfo" -> {
                     val info = getSystemInfo()
                     result.success(info)
+                }
+                "lockScreen" -> {
+                    lockScreen()
+                    result.success(null)
                 }
                 else -> {
                     result.notImplemented()
@@ -112,6 +118,20 @@ class MainActivity: FlutterActivity() {
         val intent = Intent(Settings.ACTION_HOME_SETTINGS)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
         startActivity(intent)
+    }
+
+    private fun lockScreen() {
+        val dpm = getSystemService(DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        val adminComponent = ComponentName(this, TurnOffReceiver::class.java)
+
+        if (dpm.isAdminActive(adminComponent)) {
+            dpm.lockNow()
+        } else {
+            val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
+            intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent)
+            intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "Double tap to lock screen requires Device Admin permission.")
+            startActivity(intent)
+        }
     }
 
     // ─── SYSTEM INFO (neofetch) ──────────────────────────

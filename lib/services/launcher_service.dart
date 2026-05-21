@@ -55,4 +55,14 @@ class LauncherService {
       return {};
     }
   }
+
+  /// Lock the screen (turns off the display).
+  /// Requires Device Admin to be enabled. Prompts user if not enabled.
+  static Future<void> lockScreen() async {
+    try {
+      await _channel.invokeMethod('lockScreen');
+    } on PlatformException {
+      // Ignored
+    }
+  }
 }

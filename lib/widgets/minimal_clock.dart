@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 class MinimalClock extends StatefulWidget {
   final bool isTerminal;
 
-  const MinimalClock({Key? key, this.isTerminal = false}) : super(key: key);
+  const MinimalClock({super.key, this.isTerminal = false});
 
   @override
   State<MinimalClock> createState() => _MinimalClockState();
@@ -21,7 +21,10 @@ class _MinimalClockState extends State<MinimalClock> {
   void initState() {
     super.initState();
     _updateTime();
-    _timer = Timer.periodic(const Duration(seconds: 1), (Timer t) => _updateTime());
+    _timer = Timer.periodic(
+      const Duration(seconds: 1),
+      (Timer t) => _updateTime(),
+    );
   }
 
   void _updateTime() {

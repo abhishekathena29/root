@@ -92,61 +92,68 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       return _buildSetupScreen();
     }
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: DigitalGrain(
-        opacity: 0.08,
-        child: SafeArea(
-          child: ListenableBuilder(
-            listenable: widget.themeProvider,
-            builder: (context, _) {
-              return Stack(
-                children: [
-                  _buildCurrentStyle(),
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: DigitalGrain(
+          opacity: 0.08,
+          child: SafeArea(
+            child: ListenableBuilder(
+              listenable: widget.themeProvider,
+              builder: (context, _) {
+                return GestureDetector(
+                  onDoubleTap: () => LauncherService.lockScreen(),
+                  behavior: HitTestBehavior.translucent,
+                  child: Stack(
+                    children: [
+                      _buildCurrentStyle(),
 
-                  // Top overlay for clock and settings
-                  Positioned(
-                    top: 16,
-                    left: 24,
-                    right: 24,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Flexible(
-                          child: MinimalClock(
-                            isTerminal:
-                                widget.themeProvider.currentTheme ==
-                                    LauncherThemeType.terminal,
+                      // Top overlay for clock and settings
+                      Positioned(
+                      top: 16,
+                      left: 24,
+                      right: 24,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Flexible(
+                            child: MinimalClock(
+                              isTerminal:
+                                  widget.themeProvider.currentTheme ==
+                                      LauncherThemeType.terminal,
+                            ),
                           ),
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.settings_outlined,
-                            color: Colors.white.withValues(alpha: 0.5),
+                          IconButton(
+                            icon: Icon(
+                              Icons.settings_outlined,
+                              color: Colors.white.withValues(alpha: 0.5),
+                            ),
+                            tooltip: 'Settings',
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => SettingsScreen(
+                                      themeProvider: widget.themeProvider),
+                                ),
+                              );
+                            },
                           ),
-                          tooltip: 'Settings',
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => SettingsScreen(
-                                    themeProvider: widget.themeProvider),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
 
-                  if (_loading)
-                    const Center(
-                      child:
-                          CircularProgressIndicator(color: Colors.white54),
-                    ),
-                ],
+                    if (_loading)
+                      const Center(
+                        child:
+                            CircularProgressIndicator(color: Colors.white54),
+                      ),
+                  ],
+                ),
               );
             },
+            ),
           ),
         ),
       ),
