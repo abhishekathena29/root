@@ -4,9 +4,12 @@ import 'package:installed_apps/app_info.dart';
 import 'package:installed_apps/installed_apps.dart';
 
 import '../providers/theme_provider.dart';
+import '../services/usage_tracker.dart';
 
 class AppLauncher {
   static Future<void> launch(BuildContext context, AppInfo app, ThemeProvider themeProvider) async {
+    UsageTracker.recordLaunch(app.packageName);
+
     if (themeProvider.isIntentWallEnabled) {
       // Show Intent Wall
       showGeneralDialog(

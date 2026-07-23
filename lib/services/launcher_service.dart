@@ -20,13 +20,14 @@ class LauncherService {
     }
   }
 
-  /// Sets a solid black wallpaper.
+  /// Sets a solid wallpaper.
   /// [which]: 1 = home screen only, 2 = lock screen only, 3 = both
-  static Future<bool> setBlackWallpaper({int which = 3}) async {
+  /// [color]: ARGB color int; defaults to solid black when omitted.
+  static Future<bool> setBlackWallpaper({int which = 3, int? color}) async {
     try {
       final bool result = await _channel.invokeMethod(
         'setBlackWallpaper',
-        {'which': which},
+        {'which': which, if (color != null) 'color': color},
       );
       return result;
     } on PlatformException {

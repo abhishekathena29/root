@@ -49,7 +49,8 @@ class MainActivity: FlutterActivity() {
                 }
                 "setBlackWallpaper" -> {
                     val which = call.argument<Int>("which") ?: 3 // 3 = both
-                    val success = setBlackWallpaper(which)
+                    val color = call.argument<Int>("color") ?: Color.BLACK
+                    val success = setSolidWallpaper(which, color)
                     result.success(success)
                 }
                 "canSetWallpaper" -> {
@@ -84,13 +85,13 @@ class MainActivity: FlutterActivity() {
         setTaskDescription(taskDescription)
     }
 
-    private fun setBlackWallpaper(which: Int): Boolean {
+    private fun setSolidWallpaper(which: Int, color: Int): Boolean {
         return try {
             val wm = WallpaperManager.getInstance(this)
-            // Create a 1x1 black bitmap — Android tiles/stretches it
+            // Create a 1x1 bitmap of the given color — Android tiles/stretches it
             val bitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(bitmap)
-            canvas.drawColor(Color.BLACK)
+            canvas.drawColor(color)
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 // FLAG_SYSTEM = 1 (home), FLAG_LOCK = 2 (lock screen), 3 = both

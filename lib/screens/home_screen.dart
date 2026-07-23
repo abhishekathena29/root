@@ -9,7 +9,9 @@ import '../styles/terminal_style.dart';
 import '../styles/typography_style.dart';
 import '../widgets/digital_grain.dart';
 import '../widgets/minimal_clock.dart';
+import '../widgets/status_strip.dart';
 import 'settings_screen.dart';
+import 'walkthrough_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final ThemeProvider themeProvider;
@@ -26,11 +28,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _isDefaultLauncher = false;
   bool _checkingLauncher = true;
   bool _userSkippedSetup = false;
+  bool? _iconsEnabledSnapshot;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    widget.themeProvider.addListener(_handleThemeProviderChange);
+    _iconsEnabledSnapshot = widget.themeProvider.isIconsEnabled;
     _checkLauncherStatus();
     _loadApps();
   }
@@ -38,7 +43,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    widget.themeProvider.removeListener(_handleThemeProviderChange);
     super.dispose();
+  }
+
+  void _handleThemeProviderChange() {
+    final iconsEnabled = widget.themeProvider.isIconsEnabled;
+    if (_iconsEnabledSnapshot != iconsEnabled) {
+      _iconsEnabledSnapshot = iconsEnabled;
+      _loadApps();
+    }
   }
 
   @override
@@ -63,7 +77,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     try {
       final apps = await InstalledApps.getInstalledApps(
         excludeSystemApps: false,
-        withIcon: false,
+        withIcon: widget.themeProvider.isIconsEnabled,
       );
       apps.sort(
           (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
@@ -90,6 +104,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     if (!_isDefaultLauncher && !_userSkippedSetup) {
       return _buildSetupScreen();
+    }
+
+    if (!widget.themeProvider.hasSeenWalkthrough) {
+      return WalkthroughScreen(
+        themeProvider: widget.themeProvider,
+        onDone: () => setState(() {}),
+      );
     }
 
     return PopScope(
@@ -119,26 +140,67 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Flexible(
-                            child: MinimalClock(
-                              isTerminal:
-                                  widget.themeProvider.currentTheme ==
-                                      LauncherThemeType.terminal,
+                            child: GestureDetector(
+                              onLongPress: () => widget.themeProvider.nextTheme(),
+                              behavior: HitTestBehavior.opaque,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  MinimalClock(
+                                    isTerminal:
+                                        widget.themeProvider.currentTheme ==
+                                            LauncherThemeType.terminal,
+                                    isBauhaus:
+                                        widget.themeProvider.currentTheme ==
+                                            LauncherThemeType.bauhaus,
+                                  ),
+                                  if (widget.themeProvider.isStatusStripEnabled &&
+                                      widget.themeProvider.currentTheme !=
+                                          LauncherThemeType.terminal) ...[
+                                    const SizedBox(height: 10),
+                                    const StatusStrip(),
+                                  ],
+                                ],
+                              ),
                             ),
                           ),
-                          IconButton(
-                            icon: Icon(
-                              Icons.settings_outlined,
-                              color: Colors.white.withValues(alpha: 0.5),
-                            ),
-                            tooltip: 'Settings',
-                            onPressed: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => SettingsScreen(
-                                      themeProvider: widget.themeProvider),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  Icons.help_outline,
+                                  color: Colors.white.withValues(alpha: 0.5),
                                 ),
-                              );
-                            },
+                                tooltip: 'How to use',
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => WalkthroughScreen(
+                                        themeProvider: widget.themeProvider,
+                                        onDone: () => Navigator.of(context).pop(),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                              IconButton(
+                                icon: Icon(
+                                  Icons.settings_outlined,
+                                  color: Colors.white.withValues(alpha: 0.5),
+                                ),
+                                tooltip: 'Settings',
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => SettingsScreen(
+                                          themeProvider: widget.themeProvider),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -238,16 +300,36 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  /// Space the clock overlay (and, when enabled, the status strip beneath
+  /// it) actually occupies, so per-theme content never collides with it.
+  double _contentTopPadding() {
+    const overlayTop = 16.0;
+    final isBauhaus = widget.themeProvider.currentTheme == LauncherThemeType.bauhaus;
+    final clockHeight = isBauhaus ? 70.0 : 130.0;
+    final statusStripHeight = widget.themeProvider.isStatusStripEnabled &&
+            widget.themeProvider.currentTheme != LauncherThemeType.terminal
+        ? 30.0
+        : 0.0;
+    const bottomBuffer = 24.0;
+    return overlayTop + clockHeight + statusStripHeight + bottomBuffer;
+  }
+
   Widget _buildCurrentStyle() {
     if (_loading) return const SizedBox.shrink();
 
     switch (widget.themeProvider.currentTheme) {
       case LauncherThemeType.typography:
         return TypographyStyle(
-            apps: _apps, themeProvider: widget.themeProvider);
+          apps: _apps,
+          themeProvider: widget.themeProvider,
+          contentTopPadding: _contentTopPadding(),
+        );
       case LauncherThemeType.bauhaus:
         return BauhausStyle(
-            apps: _apps, themeProvider: widget.themeProvider);
+          apps: _apps,
+          themeProvider: widget.themeProvider,
+          contentTopPadding: _contentTopPadding(),
+        );
       case LauncherThemeType.terminal:
         return TerminalStyle(
             apps: _apps, themeProvider: widget.themeProvider);
